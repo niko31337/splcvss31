@@ -1,0 +1,218 @@
+| eval cvss_vector=split(cvss_vector_string, "/")
+| eval cvss_version=mvindex(cvss_vector, 0)
+| eval cvss_error=if(len(cvss_vector_string)<1 OR isnull(cvss_vector_string),"no CVSS String supplied (cvss_vector_string empty)", "")
+| eval attack_vector=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^AV:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^AV:*")), "X"), ":"), 1)
+| eval attack_complexity=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^AC:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^AC:*")), "X"), ":"), 1)
+| eval privileges_required=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^PR:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^PR:*")), "X"), ":"), 1)
+| eval user_interaction=mvindex(split(if(isnotnull(mvfind(cvss_vector, "UI:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^UI:.*")), "X"), ":"), 1)
+| eval scope=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^S:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^S:.*")), "X"), ":"), 1)
+| eval confidentiality=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^C:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^C:.*")), "X"), ":"), 1)
+| eval integrity=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^I:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^I:.*")), "X"), ":"), 1)
+| eval availability=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^A:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^A:.*")), "X"), ":"), 1)
+| eval exploit_code_maturity=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^E:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^E:*")), "X"), ":"), 1)
+| eval remediation_level=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^RL:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^RL:.*")), "X"), ":"), 1)
+| eval report_confidence=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^RC:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^RC:.*")), "X"), ":"), 1)
+| eval confidentiality_requirement=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^CR:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^CR:*")), "X"), ":"), 1)
+| eval integrity_requirement=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^IR:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^IR:.*")), "X"), ":"), 1)
+| eval availability_requirement=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^AR:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^AR:.*")), "X"), ":"), 1)
+| eval modified_attack_vector=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^MAV:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^MAV:.*")), "X"), ":"), 1)
+| eval modified_attack_complexity=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^MAC:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^MAC:.*")), "X"), ":"), 1)
+| eval modified_privileges_required=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^MPR:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "MPR:.*")), "X"), ":"), 1)
+| eval modified_user_interaction=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^MUI:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^MUI:.*")), "X"), ":"), 1)
+| eval modified_scope=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^MS:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^MS:.*")), "X"), ":"), 1)
+| eval modified_confidentiality=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^MC:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^MC:.*")), "X"), ":"), 1)
+| eval modified_integrity=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^MI:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^MI:.*")), "X"), ":"), 1)
+| eval modified_availability=mvindex(split(if(isnotnull(mvfind(cvss_vector, "^MA:.*")), mvindex(cvss_vector, mvfind(cvss_vector, "^MA:.*")), "X"), ":"), 1)
+
+
+
+``` check for mandatory values. Triggers when a mandatory field is empty ```
+| eval cvss_error=if((attack_vector=="X" OR attack_complexity=="X" OR privileges_required=="X" OR user_interaction=="X" OR scope=="X" OR confidentiality=="X" OR integrity=="X" OR availability=="X"), mvappend(cvss_error, "Base Vector incomplete. AV, PR, UI, S, C, I, A must be set"), cvss_error)
+
+
+``` check for correct values Base Vector```
+| eval cvss_error=if(!(attack_vector=="N" OR attack_vector=="A" OR attack_vector=="L" OR attack_vector=="P"), mvappend(cvss_error, "Attack Vector (AV) with illegal field value. Must be [N|A|L|P] but is " + attack_vector), cvss_error)
+| eval cvss_error=if(!(attack_complexity=="L" OR attack_complexity=="H"), mvappend(cvss_error, "Attack Complexity (AC) with illegal field value. Must be [L|H] but is " + attack_complexity), cvss_error)
+| eval cvss_error=if(!(privileges_required=="N" OR privileges_required=="L" OR privileges_required=="H"), mvappend(cvss_error, "Privileges Required (PR) with illegal field value. Must be [N|L|H] but is " + privileges_required), cvss_error)
+| eval cvss_error=if(!(scope=="U" OR scope=="C"), mvappend(cvss_error, "Scope (S) with illegal field value. Must be [U|C] but is " + scope), cvss_error)
+| eval cvss_error=if(!(confidentiality=="H" OR confidentiality=="L" OR confidentiality=="N"), mvappend(cvss_error, "Confidentiality (C) with illegal field value. Must be [H|L|N] but is " + confidentiality), cvss_error)
+| eval cvss_error=if(!(integrity=="H" OR integrity=="L" OR integrity=="N"), mvappend(cvss_error, "Integrity (I) with illegal field value. Must be [H|L|N] but is " + integrity), cvss_error)
+| eval cvss_error=if(!(availability=="H" OR availability=="L" OR availability=="N"), mvappend(cvss_error, "Availability (A) with illegal field value. Must be [H|L|N] but is " + confidentiality), cvss_error)
+
+``` check for correct temporal vertor values ```
+| eval cvss_error=if(!(exploit_code_maturity=="X" OR exploit_code_maturity=="H" OR exploit_code_maturity=="F" OR exploit_code_maturity=="P" OR exploit_code_maturity=="U"), mvappend(cvss_error, "Exploit Code Maturity (E) with illegal field value. Must be [X|H|F|P|U] but is " + exploit_code_maturity), cvss_error)
+| eval cvss_error=if(!(remediation_level=="X" OR remediation_level=="U" OR remediation_level=="W" OR remediation_level=="T" OR remediation_level=="O"), mvappend(cvss_error, "Remediation Level (RL) with illegal field value. Must be [X|U|W|T|O] but is " + remediation_level), cvss_error)
+| eval cvss_error=if(!(report_confidence=="X" OR report_confidence=="C" OR report_confidence=="R" OR report_confidence=="U"), mvappend(cvss_error, "Report Confidence (RC) with illegal field value. Must be [X|C|R|U] but is " + report_confidence), cvss_error)
+
+
+``` check for correct environmental vector values ```
+| eval cvss_error=if(!(confidentiality_requirement=="X" OR confidentiality_requirement=="H" OR confidentiality_requirement=="M" OR confidentiality_requirement=="L"), mvappend(cvss_error, "Confidentiality Requirement (C) with illegal field value. Must be [X|H|M|L] but is " + confidentiality_requirement), cvss_error)
+| eval cvss_error=if(!(integrity_requirement=="X" OR integrity_requirement=="H" OR integrity_requirement=="M" OR integrity_requirement=="L"), mvappend(cvss_error, "Integrity Requirement (I) with illegal field value. Must be [X|H|M|L] but is " + integrity_requirement), cvss_error)
+| eval cvss_error=if(!(availability_requirement=="X" OR availability_requirement=="H" OR availability_requirement=="M" OR availability_requirement=="L"), mvappend(cvss_error, "Availability Requirement (A) with illegal field value. Must be [X|H|M|L] but is " + availability_requirement), cvss_error)
+| eval cvss_error=if(!(modified_attack_vector=="X" OR modified_attack_vector=="N" OR modified_attack_vector=="A" OR modified_attack_vector=="L" OR modified_attack_vector=="P"), mvappend(cvss_error, "Modified Attack Vector (MAV) with illegal field value. Must be [X|N|A|L|P] but is " + modified_attack_vector), cvss_error)
+| eval cvss_error=if(!(modified_attack_complexity=="X" OR modified_attack_complexity=="L" OR modified_attack_complexity=="H"), mvappend(cvss_error, "Modified Attack Vector (MAV) with illegal field value. Must be [X|L|H] but is " + modified_attack_complexity), cvss_error)
+| eval cvss_error=if(!(modified_privileges_required=="X" OR modified_privileges_required=="N" OR modified_privileges_required=="L" OR modified_privileges_required=="H"), mvappend(cvss_error, "Modified Privileges Required (MPR) with illegal field value. Must be [X|N|L|H] but is " + modified_privileges_required), cvss_error)
+| eval cvss_error=if(!(modified_user_interaction=="X" OR modified_user_interaction=="N" OR modified_user_interaction=="R"), mvappend(cvss_error, "Modified User Interaction (MUI) with illegal field value. Must be [X|N|R] but is " + modified_user_interaction), cvss_error)
+| eval cvss_error=if(!(modified_scope=="X" OR modified_scope=="U" OR modified_scope=="C"), mvappend(cvss_error, "Modified Scope (MS) with illegal field value. Must be [X|U|C] but is " + modified_scope), cvss_error)
+| eval cvss_error=if(!(modified_confidentiality=="X" OR modified_confidentiality=="L" OR modified_confidentiality=="N" OR modified_confidentiality=="N"), mvappend(cvss_error, "Modified Confidentiality (MC) with illegal field value. Must be [X|N|L|H] but is " + modified_confidentiality), cvss_error)
+| eval cvss_error=if(!(modified_integrity=="X" OR modified_integrity=="L" OR modified_integrity=="N" OR modified_integrity=="N"), mvappend(cvss_error, "Modified Integrity (MI) with illegal field value. Must be [X|N|L|H] but is " + modified_integrity), cvss_error)
+| eval cvss_error=if(!(modified_availability=="X" OR modified_availability=="H" OR modified_availability=="L" OR modified_availability=="N" OR modified_availability=="N"), mvappend(cvss_error, "Modified Availability (MA) with illegal field value. Must be [X|N|L|H] but is " + modified_availability), cvss_error)
+
+``` do not output an environmental score if there is no change at all 
+Note: we still need to set them to make sure our calculations work```
+| eval omit_environmental_score = if(  (isnull(modified_attack_vector) OR modified_attack_vector=="X") AND (isnull(modified_attack_complexity) OR modified_attack_complexity=="X") AND (isnull(modified_privileges_required) OR modified_privileges_required=="X") AND (isnull(modified_user_interaction) OR modified_user_interaction="X") AND (isnull(modified_confidentiality) OR modified_confidentiality=="X") AND (isnull(modified_integrity) OR modified_integrity=="X") AND (isnull(modified_availability) OR modified_availability=="X") AND (isnull(confidentiality_requirement) OR confidentiality_requirement=="X") AND (isnull(integrity_requirement) OR integrity_requirement=="X") AND (isnull(availability_requirement) OR availability_requirement=="X"), "true", "false")
+
+``` defaults for optional vector parts ```
+| eval exploit_code_maturity=if(isnull(exploit_code_maturity) OR exploit_code_maturity="X", "N", exploit_code_maturity)
+| eval remediation_level=if(isnull(remediation_level) OR remediation_level=="X", "N", remediation_level)
+| eval report_confidence=if(isnull(report_confidence) OR report_confidence=="X", "N", report_confidence)
+| eval confidentiality_requirement=if(isnull(confidentiality_requirement) OR confidentiality_requirement=="X", "X", confidentiality_requirement)
+| eval integrity_requirement=if(isnull(integrity_requirement), "X", integrity_requirement)
+| eval availability_requirement=if(isnull(availability_requirement), "X", availability_requirement)
+| eval modified_attack_vector=if(isnull(modified_attack_vector) OR modified_attack_vector=="X", attack_vector, modified_attack_vector)
+| eval modified_attack_complexity=if(isnull(modified_attack_complexity)  OR modified_attack_complexity=="X", attack_complexity, modified_attack_complexity)
+| eval modified_privileges_required=if(isnull(modified_privileges_required) OR modified_privileges_required=="X", privileges_required, modified_privileges_required)
+| eval modified_scope=if(isnull(modified_scope) OR modified_scope=="X", scope, modified_scope)
+| eval modified_confidentiality=if(isnull(modified_confidentiality) OR modified_confidentiality=="X", confidentiality, modified_confidentiality)
+| eval modified_user_interaction=if(isnull(modified_user_interaction) OR modified_user_interaction=="X" , user_interaction, modified_user_interaction)
+| eval modified_integrity=if(isnull(modified_integrity) OR modified_integrity=="X", integrity, modified_integrity)
+| eval modified_availability=if(isnull(modified_availability) OR modified_availability=="X", availability, modified_availability)
+
+
+``` Value definitions according to standard ```
+| eval v_attack_vector=mvappend("N:0.85", "A:0.62", "L:0.55", "P:0.2")
+| eval v_modified_attack_vector=mvappend("N:0.85", "A:0.62", "L:0.55", "P:0.2")
+| eval v_attack_complexity=mvappend("L:0.77", "H:0.44")
+| eval v_modified_attack_complexity=mvappend("L:0.77", "H:0.44")
+| eval v_privileges_required=mvappend("N:0.85", if(scope=="C", "L:0.68", "L:0.62"),  if(scope=="C", "H:0.5", "H:0.27"))
+| eval v_modified_privileges_required=mvappend("N:0.85", if(scope=="C", "L:0.68", "L:0.62"),  if(scope=="C", "H:0.5", "H:0.27"))
+| eval v_user_interaction=mvappend("N:0.85", "R:0.62")
+| eval v_modified_user_interaction=mvappend("N:0.85", "R:0.62")
+| eval v_confidentiality=mvappend("H:0.56", "L:0.22", "N:0")
+| eval v_modified_confidentiality=mvappend("H:0.56", "L:0.22", "N:0.0")
+| eval v_integrity=mvappend("H:0.56", "L:0.22", "N:0.0")
+| eval v_modified_integrity=mvappend("H:0.56", "L:0.22", "N:0.0")
+| eval v_availability=mvappend("H:0.56", "L:0.22", "N:0.0")
+| eval v_modified_availability=mvappend("H:0.56", "L:0.22", "N:0.0")
+| eval v_exploit_code_maturity=mvappend("N:1.0", "H:1.0", "F:0.97", "P:0.94", "U:0.91")
+| eval v_remediation_level=mvappend("N:1.0", "U:1.0", "W:0.97", "T:0.96", "O:0.95")
+| eval v_report_confidence=mvappend("N:1.0", "C:1.0", "R:0.96", "U:0.92")
+| eval v_confidentiality_requirement=mvappend("X:1.0", "H:1.5", "M:1.0", "L:0.5")
+| eval v_integrity_requirement=mvappend("X:1.0", "H:1.5", "M:1.0", "L:0.5")
+| eval v_availability_requirement=mvappend("X:1.0", "H:1.5", "M:1.0", "L:0.5")
+
+``` Score Calculation ```
+
+
+```Impact Sub Score```
+| eval iss = exact(1.0 - ( 
+                     ( 1.0-tonumber(mvindex(split(mvindex(v_confidentiality, mvfind(v_confidentiality, confidentiality)), ":"),1))) 
+                     * 
+                     (1.0-tonumber(mvindex(split(mvindex(v_integrity, mvfind(v_integrity, integrity)), ":"),1))) 
+                     * 
+                     (1.0-tonumber(mvindex(split(mvindex(v_availability, mvfind(v_availability, availability)), ":"),1))) ))
+``` Impact ```
+| eval a_impact = if(scope=="U", exact(6.42*iss), exact(7.52*(iss-0.029)-3.25*pow((iss-0.02),15)))
+
+``` Exploitability ```
+| eval a_av=tonumber(mvindex(split(mvindex(v_attack_vector, mvfind(v_attack_vector, attack_vector)), ":"),1))
+| eval a_ac=tonumber(mvindex(split(mvindex(v_attack_complexity, mvfind(v_attack_complexity, attack_complexity)), ":"),1))
+| eval a_pr=tonumber(mvindex(split(mvindex(v_privileges_required, mvfind(v_privileges_required, privileges_required)), ":"),1))
+| eval a_ui=tonumber(mvindex(split(mvindex(v_user_interaction, mvfind(v_user_interaction, user_interaction)), ":"),1))
+| eval a_exploitability = exact(8.22*a_av*a_ac*a_pr*a_ui)
+
+``` Base Score Calculation ```
+``` we need to do some weired tricks to make sure 4.02 becomes 4.1 and 4.00 becomes 4.0.
+See https://www.first.org/cvss/specification-document Appendix A Floating Point Rounding
+whenever you read the 100000s - thats the reason....
+
+here is an easier to understand example:
+| makeresults
+| eval calc_score=8.66112
+| eval roundup=if((calc_score*100000)%10000==0, (calc_score*100000)/100000.0, (floor(((calc_score*100000))/10000)+1)/10.0)
+
+
+```
+| eval a_unchanged_scope_base_score=if(((a_impact+a_exploitability)*100000)%10000==0, ((a_impact+a_exploitability)*100000)/100000.0, (floor(((a_impact+a_exploitability)*100000)/10000)+1)/10.0)
+| eval a_changed_scope_base_score=if((1.08*((a_impact+a_exploitability)*100000))%10000==0, ((1.08*(a_impact+a_exploitability))*100000)/100000.0, (floor(((1.08*(a_impact+a_exploitability))*100000)/10000)+1)/10.0)
+
+
+| eval a_basescore = if(a_impact<=0,0, if(scope=="U", if(a_unchanged_scope_base_score<=10.0, a_unchanged_scope_base_score, 10.0), if(a_changed_scope_base_score<=10.0, a_changed_scope_base_score, 10.0)))
+
+
+``` we have the base score now ```
+| eval base_score=a_basescore
+
+
+``` temporal score ```
+| eval a_ecm=tonumber(mvindex(split(mvindex(v_exploit_code_maturity, mvfind(v_exploit_code_maturity, exploit_code_maturity)), ":"),1))
+| eval a_rl=tonumber(mvindex(split(mvindex(v_remediation_level, mvfind(v_remediation_level, remediation_level)), ":"),1))
+| eval a_rc=tonumber(mvindex(split(mvindex(v_report_confidence, mvfind(v_report_confidence, report_confidence)), ":"),1))
+| eval a_basescore_ecm_rl_rc=base_score*a_ecm*a_rl*a_rc
+
+| eval a_temporal_score = if(((a_basescore_ecm_rl_rc)*100000)%10000==0, ((a_basescore_ecm_rl_rc)*100000)/100000.0, (floor(((a_basescore_ecm_rl_rc)*100000)/10000)+1)/10.0)
+
+| eval temporal_score=a_temporal_score
+
+| eval cvss_error2=cvss_error
+``` Environmental Score ```
+``` modified impact sub-score MISS```
+| eval a_c=tonumber(mvindex(split(mvindex(v_confidentiality, mvfind(v_confidentiality, confidentiality)), ":"),1))
+| eval a_i=tonumber(mvindex(split(mvindex(v_integrity, mvfind(v_integrity, integrity)), ":"),1))
+| eval a_a=tonumber(mvindex(split(mvindex(v_availability, mvfind(v_availability, availability)), ":"),1))
+| eval a_mc=tonumber(mvindex(split(mvindex(v_modified_confidentiality, mvfind(v_modified_confidentiality, modified_confidentiality)), ":"),1))
+| eval a_mi=tonumber(mvindex(split(mvindex(v_modified_integrity, mvfind(v_modified_integrity, modified_integrity)), ":"),1))
+| eval a_ma=tonumber(mvindex(split(mvindex(v_modified_availability, mvfind(v_modified_availability, modified_availability)), ":"),1))
+
+| eval a_mav=tonumber(mvindex(split(mvindex(v_modified_attack_vector, mvfind(v_modified_attack_vector, modified_attack_vector)), ":"),1))
+| eval a_mac=tonumber(mvindex(split(mvindex(v_modified_attack_complexity, mvfind(v_modified_attack_complexity, modified_attack_complexity)), ":"),1))
+| eval a_mpr=tonumber(mvindex(split(mvindex(v_modified_privileges_required, mvfind(v_modified_privileges_required, modified_privileges_required)), ":"),1))
+| eval a_mui=tonumber(mvindex(split(mvindex(v_modified_user_interaction, mvfind(v_modified_user_interaction, modified_user_interaction)), ":"),1))
+| eval a_cr=tonumber(mvindex(split(mvindex(v_confidentiality_requirement, mvfind(v_confidentiality_requirement, confidentiality_requirement)), ":"),1))
+| eval a_ir=tonumber(mvindex(split(mvindex(v_integrity_requirement, mvfind(v_integrity_requirement, integrity_requirement)), ":"),1))
+| eval a_ar=tonumber(mvindex(split(mvindex(v_availability_requirement, mvfind(v_availability_requirement, availability_requirement)), ":"),1))
+
+
+| eval a_miss_float = exact( 1 - (1 - a_cr*a_mc) * (1 - a_ir*a_mi) * (1 - a_ar*a_ma))
+
+
+| eval a_miss = if(a_miss_float<0.915, a_miss_float, 0.915)
+| eval a_modified_impact = if(scope=="U", exact(6.42*a_miss), exact(7.52*(a_miss-0.029)-3.25*pow((a_miss*0.9731-0.02),13)))
+| eval a_modified_exploitability = exact(8.22*a_mav*a_mac*a_mpr*a_mui)
+
+``` we calculate both, for situations where scope has changed and where not 
+otherwise the if-clauses become hell....
+```
+
+``` environmental vector calc if Scope has NOT changed ```
+| eval a_mi_me_sum = a_modified_impact+a_modified_exploitability 
+| eval a_mi_me_sum_min = if(a_mi_me_sum<10.0, a_mi_me_sum, 10.0)
+| eval a_mi_me_sum_min_ru = if((a_mi_me_sum_min*100000)%10000==0, (a_mi_me_sum_min*100000)/100000.0, (floor(((a_mi_me_sum_min*100000))/10000)+1)/10.0)
+| eval a_mi_me_sum_min_ru_ecm_rl_rc = a_mi_me_sum_min_ru * a_ecm * a_rl * a_rc
+| eval a_mi_me_sum_min_ru_ecm_rl_rc_ru = if((a_mi_me_sum_min_ru_ecm_rl_rc*100000)%10000==0, (a_mi_me_sum_min_ru_ecm_rl_rc*100000)/100000.0, (floor(((a_mi_me_sum_min_ru_ecm_rl_rc*100000))/10000)+1)/10.0)
+
+``` environmental vector calc if Scope has changed ```
+| eval a_108_mi_me_sum = 1.08*(a_modified_impact+a_modified_exploitability)
+| eval a_108_mi_me_sum_min = if(a_108_mi_me_sum<10.0, a_108_mi_me_sum, 10.0)
+| eval a_108_mi_me_sum_min_ru = if((a_108_mi_me_sum_min*100000)%10000==0, (a_108_mi_me_sum_min*100000)/100000.0, (floor(((a_108_mi_me_sum_min*100000))/10000)+1)/10.0)
+| eval a_108_mi_me_sum_min_ru_ecm_rl_rc = a_108_mi_me_sum_min_ru * a_ecm * a_rl * a_rc
+| eval a_108_mi_me_sum_min_ru_ecm_rl_rc_ru = if((a_108_mi_me_sum_min_ru_ecm_rl_rc*100000)%10000==0, (a_108_mi_me_sum_min_ru_ecm_rl_rc*100000)/100000.0, (floor(((a_108_mi_me_sum_min_ru_ecm_rl_rc*100000))/10000)+1)/10.0)
+
+
+
+| eval a_environmental_score = if(a_modified_impact<=0, 0, if(modified_scope=="U", a_mi_me_sum_min_ru_ecm_rl_rc_ru, a_108_mi_me_sum_min_ru_ecm_rl_rc_ru))
+
+
+| eval a_environmental_score = if(omit_environmental_score=="true", "", a_environmental_score)
+
+| eval environmental_score=a_environmental_score
+
+| eval final_cvss31_score = case(environmental_score>=0.0, environmental_score,
+                               temporal_score>=0.0, temporal_score,
+                               1=1, base_score)
+                               
+| eval main_score=final_cvss31_score
+| eval main_score=round(main_score, 1)
+```do not score 10.0 if there is no cvss vector at all ```
+| eval main_score=if(mvfind(cvss_error, ".*cvss_vector_string empty.*")>=0, "", main_score)
+| eval main_rating=case(main_score==0.0, "None", main_score>=0.1 AND main_score<=3.9, "Low", main_score>=4.0 AND main_score<=6.9, "Medium", main_score>=7.0 AND main_score<=8.9, "High", main_score>=4.0 AND main_score<=10.0, "Critical", 1=1, "")
