@@ -35,9 +35,9 @@
 | eval cvss_error=if(!(c31_attack_complexity=="L" OR c31_attack_complexity=="H"), mvappend(cvss_error, "Attack Complexity (AC) with illegal field value. Must be [L|H] but is " + c31_attack_complexity), cvss_error)
 | eval cvss_error=if(!(c31_privileges_required=="N" OR c31_privileges_required=="L" OR c31_privileges_required=="H"), mvappend(cvss_error, "Privileges Required (PR) with illegal field value. Must be [N|L|H] but is " + c31_privileges_required), cvss_error)
 | eval cvss_error=if(!(c31_scope=="U" OR c31_scope=="C"), mvappend(cvss_error, "Scope (S) with illegal field value. Must be [U|C] but is " + c31_scope), cvss_error)
-| eval cvss_error=if(!(c31_confidentiality=="H" OR c31_confidentiality=="L" OR confidentiality=="N"), mvappend(cvss_error, "Confidentiality (C) with illegal field value. Must be [H|L|N] but is " + c31_confidentiality), cvss_error)
+| eval cvss_error=if(!(c31_confidentiality=="H" OR c31_confidentiality=="L" OR c31_confidentiality=="N"), mvappend(cvss_error, "Confidentiality (C) with illegal field value. Must be [H|L|N] but is " + c31_confidentiality), cvss_error)
 | eval cvss_error=if(!(c31_integrity=="H" OR c31_integrity=="L" OR c31_integrity=="N"), mvappend(cvss_error, "Integrity (I) with illegal field value. Must be [H|L|N] but is " + c31_integrity), cvss_error)
-| eval cvss_error=if(!(c31_availability=="H" OR c31_availability=="L" OR c31_availability=="N"), mvappend(cvss_error, "Availability (A) with illegal field value. Must be [H|L|N] but is " + c31_confidentiality), cvss_error)
+| eval cvss_error=if(!(c31_availability=="H" OR c31_availability=="L" OR c31_availability=="N"), mvappend(cvss_error, "Availability (A) with illegal field value. Must be [H|L|N] but is " + c31_availability), cvss_error)
 
 ``` check for correct temporal vertor values ```
 | eval cvss_error=if(!(c31_exploit_code_maturity=="X" OR c31_exploit_code_maturity=="H" OR c31_exploit_code_maturity=="F" OR c31_exploit_code_maturity=="P" OR c31_exploit_code_maturity=="U"), mvappend(cvss_error, "Exploit Code Maturity (E) with illegal field value. Must be [X|H|F|P|U] but is " + c31_exploit_code_maturity), cvss_error)
@@ -58,7 +58,7 @@
 | eval cvss_error=if(!(c31_modified_integrity=="X" OR c31_modified_integrity=="L" OR c31_modified_integrity=="N" OR c31_modified_integrity=="H"), mvappend(cvss_error, "Modified Integrity (MI) with illegal field value. Must be [X|N|L|H] but is " + c31_modified_integrity), cvss_error)
 | eval cvss_error=if(!(c31_modified_availability=="X" OR c31_modified_availability=="H" OR c31_modified_availability=="L" OR c31_modified_availability=="N" OR c31_modified_availability=="N"), mvappend(cvss_error, "Modified Availability (MA) with illegal field value. Must be [X|N|L|H] but is " + c31_modified_availability), cvss_error)
 
-``` do not output an environmental score if there is no change at all 
+``` do not output an environmental score if there is no change at all
 Note: we still need to set them to make sure our calculations work```
 | eval c31_omit_environmental_score = if(  (isnull(c31_modified_attack_vector) OR c31_modified_attack_vector=="X") AND (isnull(c31_modified_attack_complexity) OR c31_modified_attack_complexity=="X") AND (isnull(c31_modified_privileges_required) OR c31_modified_privileges_required=="X") AND (isnull(c31_modified_user_interaction) OR c31_modified_user_interaction="X") AND (isnull(c31_modified_confidentiality) OR c31_modified_confidentiality=="X") AND (isnull(c31_modified_integrity) OR c31_modified_integrity=="X") AND (isnull(c31_modified_availability) OR c31_modified_availability=="X") AND (isnull(c31_confidentiality_requirement) OR c31_confidentiality_requirement=="X") AND (isnull(c31_integrity_requirement) OR c31_integrity_requirement=="X") AND (isnull(c31_availability_requirement) OR c31_availability_requirement=="X"), "true", "false")
 
@@ -105,11 +105,11 @@ Note: we still need to set them to make sure our calculations work```
 
 
 ```Impact Sub Score```
-| eval c31_iss = exact(1.0 - ( 
-                     ( 1.0-tonumber(mvindex(split(mvindex(v_confidentiality, mvfind(v_confidentiality, c31_confidentiality)), ":"),1))) 
-                     * 
-                     (1.0-tonumber(mvindex(split(mvindex(v_integrity, mvfind(v_integrity, c31_integrity)), ":"),1))) 
-                     * 
+| eval c31_iss = exact(1.0 - (
+                     ( 1.0-tonumber(mvindex(split(mvindex(v_confidentiality, mvfind(v_confidentiality, c31_confidentiality)), ":"),1)))
+                     *
+                     (1.0-tonumber(mvindex(split(mvindex(v_integrity, mvfind(v_integrity, c31_integrity)), ":"),1)))
+                     *
                      (1.0-tonumber(mvindex(split(mvindex(v_availability, mvfind(v_availability, c31_availability)), ":"),1))) ))
 ``` Impact ```
 | eval a_impact = if(c31_scope=="U", exact(6.42*c31_iss), exact(7.52*(c31_iss-0.029)-3.25*pow((c31_iss-0.02),15)))
@@ -180,12 +180,12 @@ here is an easier to understand example:
 | eval a_modified_impact = if(c31_scope=="U", exact(6.42*a_miss), exact(7.52*(a_miss-0.029)-3.25*pow((a_miss*0.9731-0.02),13)))
 | eval a_modified_exploitability = exact(8.22*a_mav*a_mac*a_mpr*a_mui)
 
-``` we calculate both, for situations where scope has changed and where not 
+``` we calculate both, for situations where scope has changed and where not
 otherwise the if-clauses become hell....
 ```
 
 ``` environmental vector calc if Scope has NOT changed ```
-| eval a_mi_me_sum = a_modified_impact+a_modified_exploitability 
+| eval a_mi_me_sum = a_modified_impact+a_modified_exploitability
 | eval a_mi_me_sum_min = if(a_mi_me_sum<10.0, a_mi_me_sum, 10.0)
 | eval a_mi_me_sum_min_ru = if((a_mi_me_sum_min*100000)%10000==0, (a_mi_me_sum_min*100000)/100000.0, (floor(((a_mi_me_sum_min*100000))/10000)+1)/10.0)
 | eval a_mi_me_sum_min_ru_ecm_rl_rc = a_mi_me_sum_min_ru * a_ecm * a_rl * a_rc
@@ -210,7 +210,7 @@ otherwise the if-clauses become hell....
 | eval final_cvss31_score = case(environmental_score>=0.0, environmental_score,
                                temporal_score>=0.0, temporal_score,
                                1=1, base_score)
-                               
+
 | eval main_score=final_cvss31_score
 | eval main_score=round(main_score, 1)
 ```do not score 10.0 if there is no cvss vector at all ```
